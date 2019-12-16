@@ -6,6 +6,24 @@ import websockets
 import colorzero
 import datetime
 import time
+from multiprocessing import Process, Queue
+from queue import Full
+
+
+class XmasTreeHardware(Process):
+    def __init__(self, queue):
+        super().__init__()
+        self.queue = queue
+
+    def run(self):
+        print('running')
+        while True:
+            msg = self.queue.get()
+            if isinstance(msg, str):
+                if msg == 'stop':
+                    break
+            print('trig')
+            time.sleep(1)
 
 
 class XmasTreeServer:
@@ -16,6 +34,24 @@ class XmasTreeServer:
         self.colour2 = colorzero.Color('#60F')
         self.brightness = 0.1
         self.hw_lock = False
+        self.hw_queue = Queue(1)
+        self.hw_process = XmasTreeHardware(self.hw_queue)
+        self.hw_process.start()
+
+        self.frame = []
+
+    #def __del__(self):
+    #    self.hw_queue.put('stop')
+    #    self.hw_process.join()
+    #    print('shutdown hw thread')
+
+    async def frame_sender(self):
+        while True:
+            try:
+                self.hw_queue.put(14, False)
+            except Full:
+                print('full')
+            await asyncio.sleep(0.1)
 
     async def colour_cycle(self):
         """ Cycle through hues """
@@ -37,14 +73,7 @@ class XmasTreeServer:
                 asyncio.create_task(self.colour_cycle())
 
     async def set_colour2(self, colour):
-        if self.hw_lock:
-            return
-
-        self.hw_lock = True
-        for i in range(10):
-            await asyncio.sleep(0.01)
-        print(colour)
-        self.hw_lock = False
+        pass
 
     async def consumer(self, message):
         msg = json.loads(message)
@@ -87,12 +116,13 @@ class XmasTreeServer:
     async def handler(self, websocket, path):
         self.websocket = websocket
         consumer_task = asyncio.create_task(self.consumer_handler())
+        asyncio.create_task(self.frame_sender())
         await consumer_task
 
-        
-tree_server = XmasTreeServer()
+if __name__ == '__main__':
+    tree_server = XmasTreeServer()
 
-start_server = websockets.serve(tree_server.handler, 'localhost', 6789)
+    start_server = websockets.serve(tree_server.handler, 'localhost', 6789)
 
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+    asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().run_forever()
