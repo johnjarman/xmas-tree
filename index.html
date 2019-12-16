@@ -8,7 +8,7 @@
         <!-- Bootstrap CSS -->
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
         <link href="dist/css/bootstrap-colorpicker.css" rel="stylesheet">
-        <title>🎄 Nerd Christmas Tree</title>
+        <title>🎄 Nerd Christmas Tree 🎄</title>
     </head>
     <body>
         <div class="container mt-5 shadow rounded p-4" style='max-width:800px'>
@@ -50,11 +50,11 @@
                 </div>
                 <h2 class='mt-3'>Presets</h2>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="presets" id="manual" value="manual" checked>
+                    <input class="form-check-input" type="radio" name="presets" id="manual" value="manual">
                     <label class="form-check-label" for="manual">Manual</label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="radio" name="presets" id="preset1" value="preset1">
+                    <input class="form-check-input" type="radio" name="presets" id="preset1" value="preset1" checked>
                     <label class="form-check-label" for="preset1">Colour cycle</label>
                 </div>
                 <div class="form-check">
@@ -76,24 +76,29 @@
 
         <script>
             var websocket = new WebSocket("ws://127.0.0.1:6789/");
+            var colour1 = ''
+            var colour2 = ''
 
             $(document).ready(function(){
                 $('#colour1').colorpicker();
-      
-                $('#colour1').on('colorpickerChange', function(event) {
-                    var colour_string = event.color.toRgbString();
-                    websocket.send(JSON.stringify({colour1:colour_string}));
-                });
-
                 $('#colour2').colorpicker();
       
-                $('#colour2').on('colorpickerChange', function(event) {
-                    var colour_string = event.color.toRgbString()
-                    websocket.send(JSON.stringify({colour2:colour_string}));
+                $('#colour1').on('change', function(event) {
+                    var colour_string = event.color.toHexString();
+                    if (colour_string != colour1) {
+                        websocket.send(JSON.stringify({colour1:colour_string}));
+                    }
+                });
+      
+                $('#colour2').on('change', function(event) {
+                    var colour_string = event.color.toHexString()
+                    if (colour_string != colour2) {
+                        websocket.send(JSON.stringify({colour2:colour_string}));
+                    }
                 });
 
                 $('#brightness').on('input',function(){
-                    $('#brightness-output').html($('#brightness').val());
+                    $('#brightness-output').html($('#brightness').val());                        
                     websocket.send(JSON.stringify({brightness:$('#brightness').val()}));
                 });
 
@@ -111,11 +116,39 @@
                 
                 websocket.onmessage = function(event){
                     data = JSON.parse(event.data)
-                    if (data.mode == 'manual') {
-                        $('#manual').prop('checked', true)
+                    if ('mode' in data) {
+                        switch (data['mode']) {
+                            case 'manual':
+                                $('#manual').prop('checked', true);
+                                break;
+                            case 'colourcycle':
+                                $('#preset1').prop('checked', true);
+                                break;
+                            case 'dawn-dusk':
+                                $('#preset2').prop('checked', true);
+                                break;
+                            case 'classic':
+                                $('#preset3').prop('checked', true)
+                                break;
+                        }
+                    }
+                    if ('colour1' in data) {
+                        colour1 = data['colour1'].toUpperCase()
+                        $('#colour1').colorpicker('setValue',data['colour1']);
+                    }
+                    if ('colour2' in data) {
+                        colour2 = data['colour2'].toUpperCase()
+                        $('#colour2').colorpicker('setValue',data['colour2']);
+                    }
+                    if ('brightness' in data) {
+                        brightness = data['brightness']
+                        $('#brightness').val(data['brightness']);
+                        $('#brightness-output').html(data['brightness']);
                     }
                 }
-
+                websocket.onopen = function(){
+                    websocket.send(JSON.stringify({cmd:'request_update'}));
+                };
             });
         </script>
     </body>
