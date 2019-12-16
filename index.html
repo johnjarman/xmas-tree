@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang='en'>
+    <head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+        <!-- Bootstrap CSS -->
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <link href="dist/css/bootstrap-colorpicker.css" rel="stylesheet">
+        <title>🎄 Nerd Christmas Tree</title>
+    </head>
+    <body>
+        <div class="container mt-5 shadow rounded p-4" style='max-width:800px'>
+            <h1>🎄 Nerd Christmas Tree 🎄</h1>
+            <div class="form-group">
+                <div class="input-group mb-3 mt-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text" id="brightness-txt">Brightness</span>
+                    </div>
+                    <input type="range" id="brightness" name="brightness" min="0" max="1" value="0.1" step="0.01" class="form-control">
+                    <div class='input-group-append'>
+                        <span id='brightness-output' class='input-group-text' style='display: inline-block; width: 100px;'></span>
+                    </div>
+                </div>
+
+                <div id='colour1' class="input-group mb-3" data-color="#FF00FF">
+                    <div class='input-group-prepend'>
+                        <span class='input-group-text' id='colour-txt'>Colour (top)</span>
+                    </div>
+                    <input type="text" class="form-control input-lg"/>
+                    <span class="input-group-append">
+                        <span class="input-group-text colorpicker-input-addon"><i></i></span>
+                    </span>
+                </div>
+
+                <div id='colour2' class="input-group mb-3" data-color="#FF00FF">
+                    <div class='input-group-prepend'>
+                        <span class='input-group-text' id='colour-txt'>Colour (main)</span>
+                    </div>
+                    <input type="text" class="form-control input-lg"/>
+                    <span class="input-group-append">
+                        <span class="input-group-text colorpicker-input-addon"><i></i></span>
+                    </span>
+                </div>
+
+                <div class="custom-control custom-checkbox">
+                    <input type="checkbox" class="custom-control-input" id="sparkle">
+                    <label class="custom-control-label" for="sparkle">Sparkle</label>
+                </div>
+                <h2 class='mt-3'>Presets</h2>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="presets" id="manual" value="manual" checked>
+                    <label class="form-check-label" for="manual">Manual</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="presets" id="preset1" value="preset1">
+                    <label class="form-check-label" for="preset1">Colour cycle</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="presets" id="preset2" value="preset2">
+                    <label class="form-check-label" for="preset2">Dawn to dusk cycle</label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="presets" id="preset3" value="preset3">
+                    <label class="form-check-label" for="preset3">Classic</label>
+                </div>
+            </div>
+        </div>
+        <!-- Optional JavaScript -->
+        <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+        <script src="https://code.jquery.com/jquery-3.4.1.min.js"  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="  crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+        <script src="dist/js/bootstrap-colorpicker.js"></script> 
+
+        <script>
+            var websocket = new WebSocket("ws://127.0.0.1:6789/");
+
+            $(document).ready(function(){
+                $('#colour1').colorpicker();
+      
+                $('#colour1').on('colorpickerChange', function(event) {
+                    var colour_string = event.color.toRgbString();
+                    websocket.send(JSON.stringify({colour1:colour_string}));
+                });
+
+                $('#colour2').colorpicker();
+      
+                $('#colour2').on('colorpickerChange', function(event) {
+                    var colour_string = event.color.toRgbString()
+                    websocket.send(JSON.stringify({colour2:colour_string}));
+                });
+
+                $('#brightness').on('input',function(){
+                    $('#brightness-output').html($('#brightness').val());
+                    websocket.send(JSON.stringify({brightness:$('#brightness').val()}));
+                });
+
+                $('input[name=presets]').change(function(){
+                    if($('#manual').prop('checked')) {
+                        websocket.send(JSON.stringify({mode:'manual'}))
+                    } else if ($('#preset1').prop('checked')) {
+                        websocket.send(JSON.stringify({mode:'colourcycle'}))
+                    } else if ($('#preset2').prop('checked')) {
+                        websocket.send(JSON.stringify({mode:'dawn-dusk'}))
+                    } else if ($('#preset3').prop('checked')) {
+                        websocket.send(JSON.stringify({mode:'classic'}))
+                    }
+                });
+                
+                websocket.onmessage = function(event){
+                    data = JSON.parse(event.data)
+                    if (data.mode == 'manual') {
+                        $('#manual').prop('checked', true)
+                    }
+                }
+
+            });
+        </script>
+    </body>
+</html>
