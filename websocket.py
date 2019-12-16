@@ -4,6 +4,7 @@ import asyncio
 import json
 import websockets
 import colorzero
+import datetime
 import time
 
 
@@ -11,33 +12,52 @@ class XmasTreeServer:
     def __init__(self):
         self.update_needed = False
         self.current_mode = 'manual'
-        self.colour1 = colorzero.Color('#FA0')
-        self.colour2 = colorzero.Color('#F00')
+        self.colour1 = colorzero.Color('#FB0')
+        self.colour2 = colorzero.Color('#60F')
         self.brightness = 0.1
-        self.last_time = time.time()
+        self.hw_lock = False
 
-    async def tree_mainloop(self):
-        while True:
-            if self.current_mode == 'colourcycle':
-                if time.time() - self.last_time > 0.1:
-                    self.last_time = time.time()
-                    self.colour2 += colorzero.Hue(deg=1)
-                    print(self.colour2.html)
-                    await self.send_ui_update({'colour2':self.colour2.html})
+    async def colour_cycle(self):
+        """ Cycle through hues """
+        while self.current_mode == 'colourcycle':
+            self.colour2 += colorzero.Hue(deg=1)
+            await self.send_ui_update({'colour2':self.colour2.html})
+            await asyncio.sleep(0.1)
 
+    async def dawn_dusk_cycle(self):
+        """ Run a slow change of colour through the day """
+        pass
+
+    def set_mode(self, mode):
+        if mode != self.current_mode:
+            # mode-change needed
+            self.current_mode = mode
+
+            if mode == 'colourcycle':
+                asyncio.create_task(self.colour_cycle())
+
+    async def set_colour2(self, colour):
+        if self.hw_lock:
+            return
+
+        self.hw_lock = True
+        for i in range(10):
             await asyncio.sleep(0.01)
+        print(colour)
+        self.hw_lock = False
 
     async def consumer(self, message):
         msg = json.loads(message)
         print(msg)
         if 'mode' in msg.keys():
-            self.current_mode = msg['mode']
+            self.set_mode(msg['mode'])
 
         if 'colour1' in msg.keys():
             self.colour1 = colorzero.Color(msg['colour1'])
 
         if 'colour2' in msg.keys():
             self.colour2 = colorzero.Color(msg['colour2'])
+            asyncio.create_task(self.set_colour2(self.colour2))
             if self.current_mode != 'manual':
                 await self.send_ui_update({'mode':'manual'})
                 self.current_mode = 'manual'
@@ -67,8 +87,7 @@ class XmasTreeServer:
     async def handler(self, websocket, path):
         self.websocket = websocket
         consumer_task = asyncio.create_task(self.consumer_handler())
-        tree_task = asyncio.create_task(self.tree_mainloop())
-        await asyncio.wait([consumer_task, tree_task])
+        await consumer_task
 
         
 tree_server = XmasTreeServer()
