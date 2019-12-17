@@ -18,7 +18,7 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text" id="brightness-txt">Brightness</span>
                     </div>
-                    <input type="range" id="brightness" name="brightness" min="0" max="1" value="0.1" step="0.01" class="form-control">
+                    <input type="range" id="brightness" name="brightness" min="0" max="31" value="3" step="1" class="form-control">
                     <div class='input-group-append'>
                         <span id='brightness-output' class='input-group-text' style='display: inline-block; width: 100px;'></span>
                     </div>
@@ -64,6 +64,19 @@
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="presets" id="preset3" value="preset3">
                     <label class="form-check-label" for="preset3">Classic</label>
+                </div>
+                <h2 class='mt-3'>Timing</h2>
+                <div class="input-group mb-3 mt-3">
+                    <div class='input-group-prepend'>
+                        <span class='input-group-text' id='colour-txt'>On (hh:mm):</span>
+                    </div>
+                    <input type="text" class="form-control" id='time-on' value='06:00'/>
+                </div>
+                <div class="input-group mb-3 mt-3">
+                    <div class='input-group-prepend'>
+                        <span class='input-group-text' id='colour-txt'>Off (hh:mm):</span>
+                    </div>
+                    <input type="text" class="form-control" id='time-off' value='01:00'/>
                 </div>
             </div>
         </div>
