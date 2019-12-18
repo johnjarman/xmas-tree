@@ -91,6 +91,8 @@
             var websocket = new WebSocket("ws://192.168.0.73:6789/");
             var colour1 = ''
             var colour2 = ''
+            var brightness = 0
+            var got_initial_value = false
 
             $(document).ready(function(){
                 $('#colour1').colorpicker();
@@ -98,21 +100,23 @@
       
                 $('#colour1').on('change', function(event) {
                     var colour_string = event.color.toHexString();
-                    if (colour_string != colour1) {
+                    if (colour_string != colour1 && got_initial_value) {
                         websocket.send(JSON.stringify({colour1:colour_string}));
                     }
                 });
       
                 $('#colour2').on('change', function(event) {
                     var colour_string = event.color.toHexString()
-                    if (colour_string != colour2) {
+                    if (colour_string != colour2 && got_initial_value) {
                         websocket.send(JSON.stringify({colour2:colour_string}));
                     }
                 });
 
                 $('#brightness').on('input',function(){
-                    $('#brightness-output').html($('#brightness').val());                        
-                    websocket.send(JSON.stringify({brightness:$('#brightness').val()}));
+                    $('#brightness-output').html($('#brightness').val());
+                    if (self.brightness != $('#brightness').val() && got_initial_value) {
+                        websocket.send(JSON.stringify({brightness:$('#brightness').val()}));
+                    }
                 });
 
                 $('input[name=presets]').change(function(){
@@ -157,6 +161,10 @@
                         brightness = data['brightness']
                         $('#brightness').val(data['brightness']);
                         $('#brightness-output').html(data['brightness']);
+                    }
+
+                    if (!got_initial_value) {
+                        got_initial_value = true
                     }
                 }
                 websocket.onopen = function(){
