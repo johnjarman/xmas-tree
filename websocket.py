@@ -156,7 +156,7 @@ class XmasTreeServer:
     async def set_colour2(self, colour, no_ui_update = False):
         self.colour2 = colour
 
-        for i in range(3) + range(4, 25):
+        for i in itertools.chain(range(3), range(4, 25)):
             self.frame[i] = colour
 
         if no_ui_update:
