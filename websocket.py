@@ -77,6 +77,7 @@ class XmasTreeServer:
                 self.hw_queue.put((self.frame, self.brightness), False)
             except Full:
                 pass
+            await asyncio.sleep(0.01)
 
     async def colour_cycle(self):
         """ Cycle through hues """
