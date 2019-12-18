@@ -152,6 +152,7 @@ class XmasTreeServer:
                 self.set_classic_colours()
 
             elif mode == 'manual':
+                await self.set_colour1(self.colour1)
                 await self.set_colour2(self.colour2)
 
     async def set_colour2(self, colour, no_ui_update = False):
