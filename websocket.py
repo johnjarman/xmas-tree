@@ -9,6 +9,7 @@ import time
 import itertools
 from multiprocessing import Process, Queue
 from queue import Full
+from gpiozero import SPIDevice
 
 
 class XmasTreeHardware(Process):
@@ -16,6 +17,7 @@ class XmasTreeHardware(Process):
         super().__init__()
         self.queue = queue
         self.last_msg = []
+        self.spi_device = SPIDevice(mosi_pin=12, clock_pin=25)
 
     def run(self):
         while True:
@@ -28,7 +30,7 @@ class XmasTreeHardware(Process):
             brightness = msg[1]
 
             if self.last_msg == msg:
-                print('ignore')
+                pass
 
             else:
                 self.last_msg = msg
@@ -46,7 +48,7 @@ class XmasTreeHardware(Process):
                 pixels = [[brightness, b, g, r] for r, g, b in pixels]
                 pixels = [i for p in pixels for i in p]
                 data = start_of_frame + pixels + end_of_frame
-                print(data)
+                self.spi_device._spi.transfer(data)
 
                 # Rate-limit SPI commands
                 time.sleep(1)
