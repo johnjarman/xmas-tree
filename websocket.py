@@ -137,7 +137,7 @@ class XmasTreeServer:
 
         self.frame = [colorzero.Color('#FFFFFF')] + [red, green, blue, yellow]*6
     
-    def set_mode(self, mode):
+    async def set_mode(self, mode):
         if mode != self.current_mode:
             # mode-change needed
             self.current_mode = mode
@@ -179,7 +179,7 @@ class XmasTreeServer:
         msg = json.loads(message)
         print(msg)
         if 'mode' in msg.keys():
-            self.set_mode(msg['mode'])
+            await self.set_mode(msg['mode'])
 
         if 'colour1' in msg.keys():
             await self.set_colour1(colorzero.Color(msg['colour1']), True)
