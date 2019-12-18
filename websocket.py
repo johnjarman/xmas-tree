@@ -135,7 +135,7 @@ class XmasTreeServer:
         blue = colorzero.Color('#0000FF')
         yellow = colorzero.Color('#FFFF00')
 
-        self.frame = [colorzero.Color('#FFFFFF')] + [red, green, blue, yellow]*6
+        self.frame = [red, green, blue, yellow]*6 + [red]
     
     async def set_mode(self, mode):
         if mode != self.current_mode:
