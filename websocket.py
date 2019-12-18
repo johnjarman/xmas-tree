@@ -66,8 +66,6 @@ class XmasTreeServer:
         self.hw_process = XmasTreeHardware(self.hw_queue)
         self.hw_process.start()
 
-        self.colour1_index = 0
-        self.colour2_range = (1,25)
 
         # Array of colorzero.Color objects, one for each LED
         self.frame = [colorzero.Color('#000')] * 25
@@ -79,8 +77,6 @@ class XmasTreeServer:
                 self.hw_queue.put((self.frame, self.brightness), False)
             except Full:
                 pass
-
-            await asyncio.sleep(0.1)
 
     async def colour_cycle(self):
         """ Cycle through hues """
@@ -160,7 +156,7 @@ class XmasTreeServer:
     async def set_colour2(self, colour, no_ui_update = False):
         self.colour2 = colour
 
-        for i in range(*self.colour2_range):
+        for i in range(3) + range(4, 25):
             self.frame[i] = colour
 
         if no_ui_update:
@@ -171,7 +167,7 @@ class XmasTreeServer:
     async def set_colour1(self, colour, no_ui_update = False):
         self.colour1 = colour
 
-        self.frame[self.colour1_index] = colour
+        self.frame[3] = colour
 
         if no_ui_update:
             return
