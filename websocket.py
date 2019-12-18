@@ -50,9 +50,6 @@ class XmasTreeHardware(Process):
                 data = start_of_frame + pixels + end_of_frame
                 self.spi_device._spi.transfer(data)
 
-                # Rate-limit SPI commands
-                time.sleep(1)
-
 
 class XmasTreeServer:
     def __init__(self):
