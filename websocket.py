@@ -156,7 +156,7 @@ class XmasTreeServer:
     async def set_colour2(self, colour, no_ui_update = False):
         self.colour2 = colour
 
-        for i in itertools.chain(range(3), range(4, 25)):
+        for i in itertools.chain(range(0, 3),range(4, 25)):
             self.frame[i] = colour
 
         if no_ui_update:
@@ -172,7 +172,7 @@ class XmasTreeServer:
         if no_ui_update:
             return
 
-        await self.send_ui_update({'colour1':self.colour2.html})
+        await self.send_ui_update({'colour1':self.colour1.html})
 
     async def consumer(self, message):
         msg = json.loads(message)
