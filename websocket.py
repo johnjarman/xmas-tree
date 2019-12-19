@@ -17,6 +17,7 @@ class XmasTreeHardware(Process):
     def __init__(self, queue, queue2):
         super().__init__()
         self.queue = queue
+        self.queue2 = queue2
         self.last_msg = []
         self.spi_device = SPIDevice(mosi_pin=12, clock_pin=25)
 
