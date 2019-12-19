@@ -23,6 +23,7 @@ class XmasTreeHardware(Process):
 
     def run(self):
         while True:
+            self.queue2.put('done')
             msg = self.queue.get()
             if isinstance(msg, str):
                 if msg == 'stop':
@@ -46,8 +47,6 @@ class XmasTreeHardware(Process):
             pixels = [i for p in pixels for i in p]
             data = start_of_frame + pixels + end_of_frame
             self.spi_device._spi.transfer(data)
-
-            self.queue2.put('done')
 
 
 class XmasTreeServer:
