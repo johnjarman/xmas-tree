@@ -60,6 +60,7 @@ class XmasTreeServer:
         self.colour1 = colorzero.Color('#000')
         self.colour2 = colorzero.Color('#000')
         self.brightness = 3
+        self.state = 'on'
         self.enable_sparkle = False
         self.hw_done = True
         self.last_time = 0
@@ -84,6 +85,17 @@ class XmasTreeServer:
                             i = random.randrange(0,25)
                             frame[i] = colorzero.Color('white')
                     
+                    # Simple turn off between 11pm and 7am
+                    hour = datetime.datetime.now().hour
+                    if hour < 7 or hour >= 23:
+                        if self.state == 'on':
+                            self.brightness = 0
+                            self.state = 'off'
+                    else:
+                        if self.state == 'off':
+                            self.brightness = 3
+                            self.state = 'on'
+
                     self.hw_queue.put((frame, self.brightness), False)
                     self.hw_done = False
             except (Full, Empty):
