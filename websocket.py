@@ -57,6 +57,7 @@ class XmasTreeServer:
         self.colour2 = colorzero.Color('#60F')
         self.brightness = 3
         self.enable_sparkle = False
+        self.hw_done = True
         self.last_time = 0
         self.hw_queue = Queue(1)
         self.hw_queue_2 = Queue(1)
@@ -72,7 +73,10 @@ class XmasTreeServer:
         while True:
             # Send tuple (frame, brightness) to hw_queue for update
             try:
-                if self.hw_queue_2.get(block=False) == 'done' and self.frame != self.last_frame:
+                if self.hw_queue_2.get(block=False) == 'done':
+                    self.hw_done = True
+
+                if self.hw_done and self.frame != self.last_frame:
 
                     frame = self.frame.copy()
 
@@ -84,6 +88,7 @@ class XmasTreeServer:
                     
                     self.hw_queue.put((frame, self.brightness), False)
                     self.last_frame = frame
+                    self.hw_done = False
             except (Full, Empty):
                 pass
             await asyncio.sleep(0.01)
