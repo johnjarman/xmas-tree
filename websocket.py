@@ -34,7 +34,7 @@ class XmasTreeHardware(Process):
                 pass
 
             else:
-                self.last_msg = msg
+                self.last_msg = msg.copy()
                 # Construct SPI command (borrowed from tree.py)
                 start_of_frame = [0]*4
                 end_of_frame = [0]*5
