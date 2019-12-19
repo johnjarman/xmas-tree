@@ -257,7 +257,7 @@ class XmasTreeServer:
         start_server = websockets.serve(self.handler, '192.168.0.73', 6789)
 
         asyncio.create_task(start_server)
-        asyncio.create_task(self.frame_sender)
+        asyncio.create_task(self.frame_sender())
 
 
 if __name__ == '__main__':
