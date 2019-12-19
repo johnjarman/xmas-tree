@@ -253,7 +253,7 @@ class XmasTreeServer:
         self.websocket = websocket
         try:
             consumer_task = asyncio.create_task(self.consumer_handler())
-            print('Client connected from {}'.format(path))
+            print('Client connected')
             await consumer_task
         except websockets.ConnectionClosed:
             print("Client disconnected")
