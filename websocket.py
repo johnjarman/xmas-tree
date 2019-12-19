@@ -74,10 +74,9 @@ class XmasTreeServer:
         while True:
             # Send tuple (frame, brightness) to hw_queue for update
             try:
-                
-                if self.enable_sparkle and self.last_time - time.monotonic() > 0.5:
+                frame = self.frame.copy()
+                if self.enable_sparkle and time.monotonic() - self.last_time > 0.5:
                     self.last_time = time.monotonic()
-                    frame = self.frame.copy()
                     i = random.randrange(0,25)
                     frame[i] = colorzero.Color('white')
                 self.hw_queue.put((frame, self.brightness), False)
