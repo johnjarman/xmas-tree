@@ -61,6 +61,8 @@ class XmasTreeServer:
         self.colour2 = colorzero.Color('#000')
         self.brightness = 3
         self.state = 'on'
+        self.on_times = [7]
+        self.off_times = [23]
         self.enable_sparkle = False
         self.hw_done = True
         self.last_time = 0
@@ -87,11 +89,12 @@ class XmasTreeServer:
                     
                     # Simple turn off between 11pm and 7am
                     hour = datetime.datetime.now().hour
-                    if hour < 7 or hour >= 23:
+                    if hour in self.off_times:
                         if self.state == 'on':
                             self.brightness = 0
                             self.state = 'off'
-                    else:
+
+                    elif hour in self.on_times:
                         if self.state == 'off':
                             self.brightness = 3
                             self.state = 'on'
@@ -248,12 +251,12 @@ class XmasTreeServer:
     async def handler(self, websocket, path):
         self.websocket = websocket
         consumer_task = asyncio.create_task(self.consumer_handler())
-        asyncio.create_task(self.frame_sender())
         await consumer_task
 
 if __name__ == '__main__':
     tree_server = XmasTreeServer()
 
+    asyncio.create_task(tree_server.frame_sender())
     start_server = websockets.serve(tree_server.handler, '192.168.0.73', 6789)
 
     asyncio.get_event_loop().run_until_complete(start_server)
