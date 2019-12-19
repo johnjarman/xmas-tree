@@ -56,7 +56,8 @@ class XmasTreeServer:
         self.current_mode = 'manual'
 
         # Array of colorzero.Color objects, one for each LED
-        self.frame = [colorzero.Color('#000')] * 25
+        self.frame = [colorzero.Color('#2602FF')] * 25
+        self.frame[3] = colorzero.Color('#FF2400')
         self.colour1 = colorzero.Color('#FF2400')
         self.colour2 = colorzero.Color('#2602FF')
         self.brightness = 3
