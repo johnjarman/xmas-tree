@@ -8,6 +8,7 @@ import datetime
 import random
 import time
 import itertools
+import copy
 from multiprocessing import Process, Queue
 from queue import Full, Empty
 from gpiozero import SPIDevice
@@ -67,7 +68,6 @@ class XmasTreeServer:
 
         # Array of colorzero.Color objects, one for each LED
         self.frame = [colorzero.Color('#000')] * 25
-        self.last_frame = self.frame.copy()
 
     async def frame_sender(self):
         while True:
@@ -76,8 +76,7 @@ class XmasTreeServer:
                 if self.hw_queue_2.get(block=False) == 'done':
                     self.hw_done = True
 
-                if self.hw_done and self.frame != self.last_frame:
-
+                if self.hw_done:
                     frame = self.frame.copy()
 
                     if self.enable_sparkle and time.monotonic() - self.last_time > 0.5:
@@ -87,7 +86,6 @@ class XmasTreeServer:
                             frame[i] = colorzero.Color('white')
                     
                     self.hw_queue.put((frame, self.brightness), False)
-                    self.last_frame = frame
                     self.hw_done = False
             except (Full, Empty):
                 pass
