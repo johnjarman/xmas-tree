@@ -54,8 +54,11 @@ class XmasTreeServer:
     def __init__(self):
         self.update_needed = False
         self.current_mode = 'manual'
-        self.colour1 = colorzero.Color('#FB0')
-        self.colour2 = colorzero.Color('#60F')
+
+        # Array of colorzero.Color objects, one for each LED
+        self.frame = [colorzero.Color('#000')] * 25
+        self.set_colour1(colorzero.Color('#FB0'))
+        self.set_colour2(colorzero.Color('#60F'))
         self.brightness = 3
         self.enable_sparkle = False
         self.hw_done = True
@@ -64,10 +67,6 @@ class XmasTreeServer:
         self.hw_queue_2 = Queue(1)
         self.hw_process = XmasTreeHardware(self.hw_queue, self.hw_queue_2)
         self.hw_process.start()
-
-
-        # Array of colorzero.Color objects, one for each LED
-        self.frame = [colorzero.Color('#000')] * 25
 
     async def frame_sender(self):
         while True:
@@ -238,8 +237,6 @@ class XmasTreeServer:
         self.websocket = websocket
         consumer_task = asyncio.create_task(self.consumer_handler())
         asyncio.create_task(self.frame_sender())
-        await self.set_colour1(colorzero.Color('#FB0'))
-        await self.set_colour2(colorzero.Color('#60F'))
         await consumer_task
 
 if __name__ == '__main__':
