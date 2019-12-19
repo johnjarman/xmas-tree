@@ -57,10 +57,8 @@ class XmasTreeServer:
 
         # Array of colorzero.Color objects, one for each LED
         self.frame = [colorzero.Color('#000')] * 25
-        self.colour1 = colorzero.Color('#FB0')
-        self.colour2 = colorzero.Color('#60F')
-        self.set_colour1(colorzero.Color('#FB0'))
-        self.set_colour2(colorzero.Color('#60F'))
+        self.colour1 = colorzero.Color('#000')
+        self.colour2 = colorzero.Color('#000')
         self.brightness = 3
         self.enable_sparkle = False
         self.hw_done = True
