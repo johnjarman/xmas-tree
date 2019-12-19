@@ -6,6 +6,7 @@ import websockets
 import colorzero
 import datetime
 import random
+import time
 import itertools
 from multiprocessing import Process, Queue
 from queue import Full
@@ -59,6 +60,7 @@ class XmasTreeServer:
         self.colour2 = colorzero.Color('#60F')
         self.brightness = 3
         self.enable_sparkle = False
+        self.last_time = 0
         self.hw_lock = False
         self.hw_queue = Queue(1)
         self.hw_process = XmasTreeHardware(self.hw_queue)
@@ -72,11 +74,13 @@ class XmasTreeServer:
         while True:
             # Send tuple (frame, brightness) to hw_queue for update
             try:
-                if self.enable_sparkle:
-                    frame = self.frame
+                
+                if self.enable_sparkle and self.last_time - time.monotonic() > 0.5:
+                    self.last_time = time.monotonic()
+                    frame = self.frame.copy()
                     i = random.randrange(0,25)
                     frame[i] = colorzero.Color('white')
-                self.hw_queue.put((self.frame, self.brightness), False)
+                self.hw_queue.put((frame, self.brightness), False)
             except Full:
                 pass
             await asyncio.sleep(0.01)

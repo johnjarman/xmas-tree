@@ -120,7 +120,7 @@
                 });
 
                 $('#sparkle').change(function() {
-                    if (self.got_initial_value) {
+                    if (got_initial_value) {
                         websocket.send(JSON.stringify({sparkle:$('#sparkle').prop(checked)}));
                     }
                 });
