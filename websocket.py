@@ -251,8 +251,12 @@ class XmasTreeServer:
 
     async def handler(self, websocket, path):
         self.websocket = websocket
-        consumer_task = asyncio.create_task(self.consumer_handler())
-        await consumer_task
+        try:
+            consumer_task = asyncio.create_task(self.consumer_handler())
+            print('Client connected from {}'.format(path))
+            await consumer_task
+        except websockets.ConnectionClosed:
+            print("Client disconnected")
 
     async def start(self):
         await websockets.serve(self.handler, '192.168.0.73', 6789)
