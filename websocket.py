@@ -254,9 +254,8 @@ class XmasTreeServer:
         await consumer_task
 
     async def start(self):
-        start_server = websockets.serve(self.handler, '192.168.0.73', 6789)
+        await websockets.serve(self.handler, '192.168.0.73', 6789)
 
-        asyncio.create_task(start_server)
         asyncio.create_task(self.frame_sender())
 
 
