@@ -65,6 +65,25 @@
                     <input class="form-check-input" type="radio" name="presets" id="preset3" value="preset3">
                     <label class="form-check-label" for="preset3">Classic</label>
                 </div>
+                <h2 class='mt-3'>Auto on/off</h2>
+                <div class="input-group mb-3 mt-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text" id="on-time-txt">On times (hh:mm, comma separated)</span>
+                    </div>
+                    <input type="text" id="on-times" name="on-times" value='' class="form-control">
+                    <div class="input-group-append">
+                        <span class="input-group-text" id="on-time-txt">hh:mm, comma separated</span>
+                    </div>
+                </div>
+                <div class="input-group mb-3 mt-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text" id="off-time-txt">Off times (hh:mm, comma separated)</span>
+                    </div>
+                    <input type="text" id="off-times" name="off-times" value='' class="form-control">
+                    <div class="input-group-append">
+                        <span class="input-group-text" id="on-time-txt">hh:mm, comma separated</span>
+                    </div>
+                </div>
             </div>
         </div>
         <!-- Optional JavaScript -->
@@ -101,7 +120,8 @@
 
                 $('#brightness').on('input',function(){
                     $('#brightness-output').html($('#brightness').val());
-                    if (self.brightness != $('#brightness').val() && got_initial_value) {
+                    if (brightness != $('#brightness').val() && got_initial_value) {
+                        brightness = $('#brightness').val()
                         websocket.send(JSON.stringify({brightness:$('#brightness').val()}));
                     }
                 });
@@ -109,6 +129,18 @@
                 $('#sparkle').change(function() {
                     if (got_initial_value) {
                         websocket.send(JSON.stringify({sparkle:$('#sparkle').prop('checked')}));
+                    }
+                });
+
+                $('#on-times').blur(function() {
+                    if (got_initial_value) {
+                        websocket.send(JSON.stringify({on_times:$('#on-times').val()}))
+                    }
+                });
+
+                $('#off-times').blur(function() {
+                    if (got_initial_value) {
+                        websocket.send(JSON.stringify({off_times:$('#off-times').val()}))
                     }
                 });
 
@@ -157,6 +189,12 @@
                     }
                     if ('sparkle' in data) {
                         $('#sparkle').prop('checked', Boolean(data['sparkle']))
+                    }
+                    if ('on_times' in data) {
+                        $('#on-times').val(data['on_times'])
+                    }
+                    if ('off_times' in data) {
+                        $('#off-times').val(data['off_times'])
                     }
 
                     if (!got_initial_value) {

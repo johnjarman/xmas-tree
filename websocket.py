@@ -61,9 +61,10 @@ class XmasTreeServer:
         self.colour1 = colorzero.Color('#FF2400')
         self.colour2 = colorzero.Color('#2602FF')
         self.brightness = 3
-        self.state = 'on'
-        self.on_times = [7]
-        self.off_times = [23]
+        self.state = ''
+        self.on_times = [[7,0]]
+        self.off_times = [[23,0]]
+        self.last_hour = [0,0]
         self.enable_sparkle = True
         self.hw_done = True
         self.last_time = 0
@@ -86,17 +87,23 @@ class XmasTreeServer:
                         self.last_time = time.monotonic()
                         for j in range(random.randrange(1,4)):
                             i = random.randrange(0,25)
-                            frame[i] = colorzero.Color('white')
+                            if i != 3:
+                                frame[i] = colorzero.Color('white')
                     
-                    # Simple turn off between 11pm and 7am
-                    hour = datetime.datetime.now().hour
-                    if hour in self.off_times:
-                        if self.state == 'on':
+                    # Turn on or off as programmed
+                    now = datetime.datetime.now()
+
+                    if self.last_hour != [now.hour, now.minute]:
+                        self.state = ''
+                        self.last_hour = [now.hour, now.minute]
+
+                    if [now.hour, now.minute] in self.off_times:
+                        if self.state != 'off':
                             self.brightness = 0
                             self.state = 'off'
 
-                    elif hour in self.on_times:
-                        if self.state == 'off':
+                    elif [now.hour, now.minute] in self.on_times:
+                        if self.state != 'on':
                             self.brightness = 3
                             self.state = 'on'
 
@@ -229,14 +236,50 @@ class XmasTreeServer:
         if 'sparkle' in msg.keys():
             self.enable_sparkle = bool(msg['sparkle'])
 
+        if 'on_times' in msg.keys():
+            on_times =  msg['on_times'].split(',')
+            on_times_filtered = []
+            for time in on_times:
+                try:
+                    hour, minute = time.split(':')
+                    if int(hour) >= 0 and int(hour) <= 23 and int(minute) >= 0 and int(minute) <= 59:
+                        on_times_filtered.append([int(hour),int(minute)])
+                except (ValueError, IndexError):
+                    pass
+            self.on_times = on_times_filtered
+            self.state = ''
+            print('on times: {}'.format(self.on_times))
+
+        if 'off_times' in msg.keys():
+            off_times =  msg['off_times'].split(',')
+            off_times_filtered = []
+            for time in off_times:
+                try:
+                    hour, minute = time.split(':')
+                    if int(hour) >= 0 and int(hour) <= 23 and int(minute) >= 0 and int(minute) <= 59:
+                        off_times_filtered.append([int(hour),int(minute)])
+                except (ValueError, IndexError):
+                    pass
+            self.off_times = off_times_filtered
+            self.state = ''
+            print('off times: {}'.format(self.off_times))
+
         if 'cmd' in msg.keys():
             if msg['cmd'] == 'request_update':
+                on_times = []
+                for t in self.on_times:
+                    on_times.append('{}:{:0>2}'.format(t[0], t[1]))
+                off_times = []
+                for t in self.off_times:
+                    off_times.append('{}:{:0>2}'.format(t[0], t[1]))
                 await self.send_ui_update({
                     'mode':self.current_mode,
                     'colour1':self.colour1.html,
                     'colour2':self.colour2.html,
                     'brightness':self.brightness,
-                    'sparkle':self.enable_sparkle
+                    'sparkle':self.enable_sparkle,
+                    'on_times':str(on_times).strip('[]').replace('\'',''),
+                    'off_times':str(off_times).strip('[]').replace('\'','')
                 })
 
     async def send_ui_update(self, update):
