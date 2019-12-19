@@ -58,6 +58,7 @@ class XmasTreeServer:
         self.colour1 = colorzero.Color('#FB0')
         self.colour2 = colorzero.Color('#60F')
         self.brightness = 3
+        self.enable_sparkle = False
         self.hw_lock = False
         self.hw_queue = Queue(1)
         self.hw_process = XmasTreeHardware(self.hw_queue)
