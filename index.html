@@ -156,7 +156,7 @@
                         $('#brightness-output').html(data['brightness']);
                     }
                     if ('sparkle' in data) {
-                        $('#sparkle').val(Boolean(data['sparkle']))
+                        $('#sparkle').prop('checked', Boolean(data['sparkle']))
                     }
 
                     if (!got_initial_value) {

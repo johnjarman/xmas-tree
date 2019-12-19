@@ -57,13 +57,13 @@ class XmasTreeServer:
 
         # Array of colorzero.Color objects, one for each LED
         self.frame = [colorzero.Color('#000')] * 25
-        self.colour1 = colorzero.Color('#000')
-        self.colour2 = colorzero.Color('#000')
+        self.colour1 = colorzero.Color('#FF2400')
+        self.colour2 = colorzero.Color('#2602FF')
         self.brightness = 3
         self.state = 'on'
         self.on_times = [7]
         self.off_times = [23]
-        self.enable_sparkle = False
+        self.enable_sparkle = True
         self.hw_done = True
         self.last_time = 0
         self.hw_queue = Queue(1)
