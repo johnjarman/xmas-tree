@@ -9,12 +9,12 @@ import random
 import time
 import itertools
 from multiprocessing import Process, Queue
-from queue import Full
+from queue import Full, Empty
 from gpiozero import SPIDevice
 
 
 class XmasTreeHardware(Process):
-    def __init__(self, queue):
+    def __init__(self, queue, queue2):
         super().__init__()
         self.queue = queue
         self.last_msg = []
@@ -30,26 +30,23 @@ class XmasTreeHardware(Process):
             frame = msg[0]
             brightness = msg[1]
 
-            if self.last_msg == msg:
-                pass
+            # Construct SPI command (borrowed from tree.py)
+            start_of_frame = [0]*4
+            end_of_frame = [0]*5
 
-            else:
-                self.last_msg = msg.copy()
-                # Construct SPI command (borrowed from tree.py)
-                start_of_frame = [0]*4
-                end_of_frame = [0]*5
+            # Max brightness = 31
 
-                # Max brightness = 31
+                        # SSSBBBBB (start, brightness)
+            brightness = 0b11100000 | brightness
 
-                            # SSSBBBBB (start, brightness)
-                brightness = 0b11100000 | brightness
+            pixels = [pixel.rgb_bytes[0:3] for pixel in frame]
 
-                pixels = [pixel.rgb_bytes[0:3] for pixel in frame]
+            pixels = [[brightness, b, g, r] for r, g, b in pixels]
+            pixels = [i for p in pixels for i in p]
+            data = start_of_frame + pixels + end_of_frame
+            self.spi_device._spi.transfer(data)
 
-                pixels = [[brightness, b, g, r] for r, g, b in pixels]
-                pixels = [i for p in pixels for i in p]
-                data = start_of_frame + pixels + end_of_frame
-                self.spi_device._spi.transfer(data)
+            self.queue2.put('done')
 
 
 class XmasTreeServer:
@@ -61,27 +58,33 @@ class XmasTreeServer:
         self.brightness = 3
         self.enable_sparkle = False
         self.last_time = 0
-        self.hw_lock = False
         self.hw_queue = Queue(1)
-        self.hw_process = XmasTreeHardware(self.hw_queue)
+        self.hw_queue_2 = Queue(1)
+        self.hw_process = XmasTreeHardware(self.hw_queue, self.hw_queue_2)
         self.hw_process.start()
 
 
         # Array of colorzero.Color objects, one for each LED
         self.frame = [colorzero.Color('#000')] * 25
+        self.last_frame = self.frame.copy()
 
     async def frame_sender(self):
         while True:
             # Send tuple (frame, brightness) to hw_queue for update
             try:
-                frame = self.frame.copy()
-                if self.enable_sparkle and time.monotonic() - self.last_time > 0.5:
-                    self.last_time = time.monotonic()
-                    for j in range(random.randrange(1,4)):
-                        i = random.randrange(0,25)
-                        frame[i] = colorzero.Color('white')
-                self.hw_queue.put((frame, self.brightness), False)
-            except Full:
+                if self.hw_queue_2.get(block=False) == 'done' and self.frame != self.last_frame:
+
+                    frame = self.frame.copy()
+
+                    if self.enable_sparkle and time.monotonic() - self.last_time > 0.5:
+                        self.last_time = time.monotonic()
+                        for j in range(random.randrange(1,4)):
+                            i = random.randrange(0,25)
+                            frame[i] = colorzero.Color('white')
+                    
+                    self.hw_queue.put((frame, self.brightness), False)
+                    self.last_frame = frame
+            except (Full, Empty):
                 pass
             await asyncio.sleep(0.01)
 
