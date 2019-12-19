@@ -77,8 +77,9 @@ class XmasTreeServer:
                 frame = self.frame.copy()
                 if self.enable_sparkle and time.monotonic() - self.last_time > 0.5:
                     self.last_time = time.monotonic()
-                    i = random.randrange(0,25)
-                    frame[i] = colorzero.Color('white')
+                    for j in range(random.randrange(1,4)):
+                        i = random.randrange(0,25)
+                        frame[i] = colorzero.Color('white')
                 self.hw_queue.put((frame, self.brightness), False)
             except Full:
                 pass

@@ -121,7 +121,7 @@
 
                 $('#sparkle').change(function() {
                     if (got_initial_value) {
-                        websocket.send(JSON.stringify({sparkle:$('#sparkle').prop(checked)}));
+                        websocket.send(JSON.stringify({sparkle:$('#sparkle').prop('checked')}));
                     }
                 });
 
