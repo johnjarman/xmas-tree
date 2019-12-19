@@ -5,7 +5,7 @@ import json
 import websockets
 import colorzero
 import datetime
-import time
+import random
 import itertools
 from multiprocessing import Process, Queue
 from queue import Full
@@ -71,6 +71,10 @@ class XmasTreeServer:
         while True:
             # Send tuple (frame, brightness) to hw_queue for update
             try:
+                if self.enable_sparkle:
+                    frame = self.frame
+                    i = random.randrange(0,25)
+                    frame[i] = colorzero.Color('white')
                 self.hw_queue.put((self.frame, self.brightness), False)
             except Full:
                 pass
@@ -196,13 +200,17 @@ class XmasTreeServer:
         if 'brightness' in msg.keys():
             self.brightness = int(msg['brightness'])
 
+        if 'sparkle' in msg.keys():
+            self.enable_sparkle = bool(msg['sparkle'])
+
         if 'cmd' in msg.keys():
             if msg['cmd'] == 'request_update':
                 await self.send_ui_update({
                     'mode':self.current_mode,
                     'colour1':self.colour1.html,
                     'colour2':self.colour2.html,
-                    'brightness':self.brightness
+                    'brightness':self.brightness,
+                    'sparkle':self.enable_sparkle
                 })
 
     async def send_ui_update(self, update):

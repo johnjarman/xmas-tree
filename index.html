@@ -119,6 +119,12 @@
                     }
                 });
 
+                $('#sparkle').change(function() {
+                    if (self.got_initial_value) {
+                        websocket.send(JSON.stringify({sparkle:$('#sparkle').prop(checked)}));
+                    }
+                });
+
                 $('input[name=presets]').change(function(){
                     if($('#manual').prop('checked')) {
                         websocket.send(JSON.stringify({mode:'manual'}))
@@ -161,6 +167,9 @@
                         brightness = data['brightness']
                         $('#brightness').val(data['brightness']);
                         $('#brightness-output').html(data['brightness']);
+                    }
+                    if ('sparkle' in data) {
+                        $('#sparkle').val(Boolean(data['sparkle']))
                     }
 
                     if (!got_initial_value) {
