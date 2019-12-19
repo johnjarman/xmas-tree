@@ -253,11 +253,14 @@ class XmasTreeServer:
         consumer_task = asyncio.create_task(self.consumer_handler())
         await consumer_task
 
+    async def start(self):
+        start_server = websockets.serve(self.handler, '192.168.0.73', 6789)
+
+        asyncio.create_task(start_server)
+        asyncio.create_task(self.frame_sender)
+
+
 if __name__ == '__main__':
     tree_server = XmasTreeServer()
 
-    asyncio.create_task(tree_server.frame_sender())
-    start_server = websockets.serve(tree_server.handler, '192.168.0.73', 6789)
-
-    asyncio.get_event_loop().run_until_complete(start_server)
-    asyncio.get_event_loop().run_forever()
+    asyncio.run(tree_server.start())
