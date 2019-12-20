@@ -53,7 +53,7 @@ class XmasTreeHardware(Process):
 class XmasTreeServer:
     def __init__(self):
         self.update_needed = False
-        self.current_mode = 'manual'
+        self.current_mode = 'slow-cycle'
 
         # Array of colorzero.Color objects, one for each LED
         self.frame = [colorzero.Color('#2602FF')] * 25
@@ -65,7 +65,7 @@ class XmasTreeServer:
         self.on_times = [[7,0]]
         self.off_times = [[23,0]]
         self.last_hour = [0,0]
-        self.enable_sparkle = True
+        self.enable_sparkle = False
         self.hw_done = True
         self.last_time = 0
         self.hw_queue = Queue(1)
@@ -116,55 +116,39 @@ class XmasTreeServer:
     async def colour_cycle(self):
         """ Cycle through hues """
         while self.current_mode == 'colourcycle':
-            await self.set_colour2(self.colour2 + colorzero.Hue(deg=1))
-            await asyncio.sleep(0.1)
+            await self.set_colour2(self.colour2 + colorzero.Hue(deg=2))
+            await asyncio.sleep(0.2)
 
-    async def dawn_dusk_cycle(self):
-        """ Run a slow change of colour through the day """
-        while self.current_mode == 'dawn-dusk':
-            t = datetime.datetime.now()
-            
-            # Define some colours for different hours
-            colour_dict = {
-                0 : '#000033',
-                1 : '#000033',
-                2 : '#000033',
-                3 : '#000033',
-                4 : '#330066',
-                5 : '#663399',
-                6 : '#9966cc',
-                7 : '#cc6666',
-                8 : '#CC00FF',
-                9 : '#0000FF',
-                10: '#0066ff',
-                11: '#00DBFF',
-                12: '#00FF00',
-                13: '#FF3000',
-                14: '#FF0000',
-                15: '#FF00FF',
-                16: '#6000FF',
-                17: '#0000FF',
-                18: '#FF3000',
-                19: '#FF0000',
-                20: '#00FF00',
-                21: '#6000FF',
-                22: '#330066',
-                23: '#000066'
-            }
+    async def slow_cycle(self):
+        """ Run a slow change of colour between some nice presets """
+        colour_presets = [
+            ['#FF0000', '#00FF00'], # Red/green
+            ['#FFFFFF', '#0055FF'], # White/aqua
+            ['#FF2400', '#2600FF'], # Orange/purple
+            ['#003DFF', '#FF009E'], # Blue/pink
+            ['#2600FF', '#FF2400'], # Purple/orange
+            ['#00FF00', '#FF0000'], # Green/red
+            ['#F56710', '#FF20BF']  # Warm white/pink
+        ]
+        while self.current_mode == 'slow-cycle':
+            for preset in colour_presets:
+                # Transition to next preset over about 5 mins
 
-            colour = colorzero.Color(colour_dict[t.hour])
+                gradient1 = self.colour1.gradient(colorzero.Color(preset[0]), steps=30)
+                gradient2 = self.colour2.gradient(colorzero.Color(preset[1]), steps=30)
 
-            if t.hour == 23:
-                t_next = 0
-            else:
-                t_next = t.hour + 1
+                for c1, c2 in zip(gradient1, gradient2):
+                    if self.current_mode != 'slow-cycle':
+                        break
+                    await self.set_colour1(c1)
+                    await self.set_colour2(c2)
+                    await asyncio.sleep(10)
 
-            next_colour = colorzero.Color(colour_dict[t_next])
-
-            color_gradient = (c for c in colour.gradient(next_colour, steps=60))
-        
-            await self.set_colour2(next(itertools.islice(color_gradient, t.minute, None)))
-            await asyncio.sleep(30)
+                # Stay on this preset for 5 mins
+                if self.current_mode == 'slow-cycle':
+                    await asyncio.sleep(300)
+                else:
+                    break
     
     def set_classic_colours(self):
         red = colorzero.Color('#FF0000')
@@ -183,8 +167,8 @@ class XmasTreeServer:
             if mode == 'colourcycle':
                 asyncio.create_task(self.colour_cycle())
 
-            elif mode == 'dawn-dusk':
-                asyncio.create_task(self.dawn_dusk_cycle())
+            elif mode == 'slow-cycle':
+                asyncio.create_task(self.slow_cycle())
 
             elif mode == 'classic':
                 self.set_classic_colours()
@@ -201,8 +185,10 @@ class XmasTreeServer:
 
         if no_ui_update:
             return
-
-        await self.send_ui_update({'colour2':self.colour2.html})
+        try:
+            await self.send_ui_update({'colour2':self.colour2.html})
+        except AttributeError:
+            pass
 
     async def set_colour1(self, colour, no_ui_update = False):
         self.colour1 = colour
@@ -211,8 +197,10 @@ class XmasTreeServer:
 
         if no_ui_update:
             return
-
-        await self.send_ui_update({'colour1':self.colour1.html})
+        try:
+            await self.send_ui_update({'colour1':self.colour1.html})
+        except AttributeError:
+            pass
 
     async def consumer(self, message):
         msg = json.loads(message)
@@ -303,6 +291,8 @@ class XmasTreeServer:
 
     async def start(self):
         await websockets.serve(self.handler, '192.168.0.73', 6789)
+        asyncio.create_task(self.slow_cycle())
+        print('Server started')
         await self.frame_sender()
 
 
