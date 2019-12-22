@@ -61,6 +61,7 @@ class XmasTreeServer:
         self.colour1 = colorzero.Color('#FF2400')
         self.colour2 = colorzero.Color('#2602FF')
         self.brightness = 3
+        self.last_brightness = 3
         self.state = ''
         self.on_times = [[7,0]]
         self.off_times = [[23,0]]
@@ -99,12 +100,15 @@ class XmasTreeServer:
 
                     if [now.hour, now.minute] in self.off_times:
                         if self.state != 'off':
-                            self.brightness = 0
+                            if self.brightness != 0:
+                                self.last_brightness = self.brightness
+                                self.brightness = 0
                             self.state = 'off'
 
                     elif [now.hour, now.minute] in self.on_times:
                         if self.state != 'on':
-                            self.brightness = 3
+                            if self.brightness == 0:
+                                self.brightness = self.last_brightness
                             self.state = 'on'
 
                     self.hw_queue.put((frame, self.brightness), False)
@@ -128,7 +132,7 @@ class XmasTreeServer:
             ['#003DFF', '#FF009E'], # Blue/pink
             ['#2600FF', '#FF2400'], # Purple/orange
             ['#00FF00', '#FF0000'], # Green/red
-            ['#F56710', '#FF20BF']  # Warm white/pink
+            ['#FF20BF', '#F56710']  # Warm white/pink
         ]
         while self.current_mode == 'slow-cycle':
             for preset in colour_presets:
