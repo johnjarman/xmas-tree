@@ -10,6 +10,7 @@ import time
 import itertools
 import copy
 import logging
+import sys
 from multiprocessing import Process, Queue
 from queue import Full, Empty
 from gpiozero import SPIDevice
@@ -53,6 +54,7 @@ class XmasTreeHardware(Process):
 
 class XmasTreeServer:
     def __init__(self):
+        self.connections = set()
         self.state = ''
         self.last_hour = [0,0]
         self.hw_done = True
@@ -199,9 +201,10 @@ class XmasTreeServer:
         try:
             with open('defaults.json', 'r') as json_file:
                 defaults = json.load(json_file)
+                logging.info("Loading defaults from defaults.json")
         except FileNotFoundError:
             # No config file found, so create it
-            logging.info("Creating config file defaults.json")
+            logging.warn("No config file found, using built-in defaults")
             defaults = {
                 'current_mode':'slow-cycle',
                 'colour1':'#FF2400',
@@ -214,6 +217,7 @@ class XmasTreeServer:
 
             with open('defaults.json', 'w+') as json_file:
                 json.dump(defaults, json_file)
+                logging.info("Written built-in defaults to config file defaults.json")
 
         # Load in default values
         self.frame = [colorzero.Color(defaults['colour2'])] * 25
@@ -241,10 +245,12 @@ class XmasTreeServer:
         
         with open('defaults.json', 'w+') as json_file:
             json.dump(defaults, json_file)
+            logging.info("Saved defaults to defaults.json")
 
 
     async def consumer(self, message):
         msg = json.loads(message)
+        logging.debug("Message received: {}".format(msg))
         if 'mode' in msg.keys():
             await self.set_mode(msg['mode'])
 
@@ -319,28 +325,29 @@ class XmasTreeServer:
         })
 
     async def send_ui_update(self, update):
-        try:
-            await self.websocket.send(json.dumps(update))
-        except websockets.exceptions.ConnectionClosed:
-            pass
-
-    async def consumer_handler(self):
-        async for message in self.websocket:
-            await self.consumer(message)
+        if self.connections:
+            # Send update to each connected client
+            await asyncio.wait([connection.send(json.dumps(update)) for connection in self.connections])
+        
+            logging.debug('Sent update {} to {} client(s)'.format(update, len(self.connections)))
 
     async def handler(self, websocket, path):
-        self.websocket = websocket
         try:
-            consumer_task = asyncio.create_task(self.consumer_handler())
-            logging.info('Client connected')
-            await consumer_task
+            self.connections.add(websocket)
+            logging.info("Client connected from {}".format(websocket.remote_address[0]))
+            async for message in websocket:
+                await self.consumer(message)
         except websockets.ConnectionClosed:
-            logging.info("Client disconnected")
+            logging.info("Client disconnected from {}".format(websocket.remote_address[0]))
+        finally:
+            self.connections.discard(websocket)
 
     async def start(self):
         await self.load_defaults()
-        await websockets.serve(self.handler, '192.168.0.73', 6789)
-        logging.info('Server started')
+        ip = '192.168.0.73'
+        port = 6789
+        await websockets.serve(self.handler, ip, port)
+        logging.info('Server started at {}:{}'.format(ip, port))
         await self.frame_sender()
 
 
