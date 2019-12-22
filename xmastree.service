@@ -1,0 +1,12 @@
+[Unit]
+Description=Xmas Tree server
+After=multi-user.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/pi/xmas-tree
+User=pi
+ExecStart=/usr/bin/python3 /home/pi/xmas-tree/xmastree.py
+
+[Install]
+WantedBy=multi-user.target

@@ -9,6 +9,7 @@ import random
 import time
 import itertools
 import copy
+import logging
 from multiprocessing import Process, Queue
 from queue import Full, Empty
 from gpiozero import SPIDevice
@@ -52,21 +53,8 @@ class XmasTreeHardware(Process):
 
 class XmasTreeServer:
     def __init__(self):
-        self.update_needed = False
-        self.current_mode = 'slow-cycle'
-
-        # Array of colorzero.Color objects, one for each LED
-        self.frame = [colorzero.Color('#2602FF')] * 25
-        self.frame[3] = colorzero.Color('#FF2400')
-        self.colour1 = colorzero.Color('#FF2400')
-        self.colour2 = colorzero.Color('#2602FF')
-        self.brightness = 3
-        self.last_brightness = 3
         self.state = ''
-        self.on_times = [[7,0]]
-        self.off_times = [[23,0]]
         self.last_hour = [0,0]
-        self.enable_sparkle = False
         self.hw_done = True
         self.last_time = 0
         self.hw_queue = Queue(1)
@@ -206,9 +194,57 @@ class XmasTreeServer:
         except AttributeError:
             pass
 
+    async def load_defaults(self):
+        # Load config from file
+        try:
+            with open('defaults.json', 'r') as json_file:
+                defaults = json.load(json_file)
+        except FileNotFoundError:
+            # No config file found, so create it
+            logging.info("Creating config file defaults.json")
+            defaults = {
+                'current_mode':'slow-cycle',
+                'colour1':'#FF2400',
+                'colour2':'#2602FF',
+                'brightness':3,
+                'on_times':[[16,0]],
+                'off_times':[[23,30]],
+                'enable_sparkle':False
+            }
+
+            with open('defaults.json', 'w+') as json_file:
+                json.dump(defaults, json_file)
+
+        # Load in default values
+        self.frame = [colorzero.Color(defaults['colour2'])] * 25
+        self.frame[3] = colorzero.Color(defaults['colour1'])
+        self.colour1 = colorzero.Color(defaults['colour1'])
+        self.colour2 = colorzero.Color(defaults['colour2'])
+        self.brightness = defaults['brightness']
+        self.last_brightness = defaults['brightness']
+        self.on_times = defaults['on_times']
+        self.off_times = defaults['off_times']
+        self.enable_sparkle = defaults['enable_sparkle']
+        self.current_mode = ''
+        await self.set_mode(defaults['current_mode'])
+
+    async def save_defaults(self):
+        defaults = {
+            'colour1':self.colour1.html,
+            'colour2':self.colour2.html,
+            'brightness':self.brightness,
+            'on_times':self.on_times,
+            'off_times':self.off_times,
+            'enable_sparkle':self.enable_sparkle,
+            'current_mode':self.current_mode
+        }
+        
+        with open('defaults.json', 'w+') as json_file:
+            json.dump(defaults, json_file)
+
+
     async def consumer(self, message):
         msg = json.loads(message)
-        print(msg)
         if 'mode' in msg.keys():
             await self.set_mode(msg['mode'])
 
@@ -240,7 +276,6 @@ class XmasTreeServer:
                     pass
             self.on_times = on_times_filtered
             self.state = ''
-            print('on times: {}'.format(self.on_times))
 
         if 'off_times' in msg.keys():
             off_times =  msg['off_times'].split(',')
@@ -254,25 +289,34 @@ class XmasTreeServer:
                     pass
             self.off_times = off_times_filtered
             self.state = ''
-            print('off times: {}'.format(self.off_times))
 
         if 'cmd' in msg.keys():
-            if msg['cmd'] == 'request_update':
-                on_times = []
-                for t in self.on_times:
-                    on_times.append('{}:{:0>2}'.format(t[0], t[1]))
-                off_times = []
-                for t in self.off_times:
-                    off_times.append('{}:{:0>2}'.format(t[0], t[1]))
-                await self.send_ui_update({
-                    'mode':self.current_mode,
-                    'colour1':self.colour1.html,
-                    'colour2':self.colour2.html,
-                    'brightness':self.brightness,
-                    'sparkle':self.enable_sparkle,
-                    'on_times':str(on_times).strip('[]').replace('\'',''),
-                    'off_times':str(off_times).strip('[]').replace('\'','')
-                })
+            if msg['cmd'] == 'request-update':
+                await self.update_all()
+
+            elif msg['cmd'] == 'save-defaults':
+                await self.save_defaults()
+
+            elif msg['cmd'] == 'load-defaults':
+                await self.load_defaults()
+                await self.update_all()
+
+    async def update_all(self):
+        on_times = []
+        for t in self.on_times:
+            on_times.append('{}:{:0>2}'.format(t[0], t[1]))
+        off_times = []
+        for t in self.off_times:
+            off_times.append('{}:{:0>2}'.format(t[0], t[1]))
+        await self.send_ui_update({
+            'mode':self.current_mode,
+            'colour1':self.colour1.html,
+            'colour2':self.colour2.html,
+            'brightness':self.brightness,
+            'sparkle':self.enable_sparkle,
+            'on_times':str(on_times).strip('[]').replace('\'',''),
+            'off_times':str(off_times).strip('[]').replace('\'','')
+        })
 
     async def send_ui_update(self, update):
         try:
@@ -288,19 +332,26 @@ class XmasTreeServer:
         self.websocket = websocket
         try:
             consumer_task = asyncio.create_task(self.consumer_handler())
-            print('Client connected')
+            logging.info('Client connected')
             await consumer_task
         except websockets.ConnectionClosed:
-            print("Client disconnected")
+            logging.info("Client disconnected")
 
     async def start(self):
+        await self.load_defaults()
         await websockets.serve(self.handler, '192.168.0.73', 6789)
-        asyncio.create_task(self.slow_cycle())
-        print('Server started')
+        logging.info('Server started')
         await self.frame_sender()
 
 
 if __name__ == '__main__':
+    # Set up logging
+    logging.basicConfig(
+        filename='xmastree.log',
+        level=logging.INFO,
+        format='%(asctime)s %(levelname)s %(message)s',
+        datefmt='%d/%m/%Y %H:%M:%S')
+
     tree_server = XmasTreeServer()
 
     asyncio.run(tree_server.start())

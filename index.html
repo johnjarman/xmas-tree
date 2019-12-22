@@ -84,6 +84,16 @@
                         <span class="input-group-text" id="on-time-txt">hh:mm, comma separated</span>
                     </div>
                 </div>
+                <div class="d-flex">
+                <div class="float-left">
+                    <button class="btn btn-primary" id="save">Save defaults</button>
+                    <button class="btn btn-secondary" id="load">Load defaults</button>
+                </div>
+
+                <div class="float-right ml-auto">
+                    <button class="btn btn-primary" id="refresh">Refresh</button>
+                </div>
+                </div>
             </div>
         </div>
         <!-- Optional JavaScript -->
@@ -155,6 +165,18 @@
                         websocket.send(JSON.stringify({mode:'classic'}))
                     }
                 });
+
+                $('#save').click(function(){
+                    websocket.send(JSON.stringify({cmd:'save-defaults'}))
+                })
+
+                $('#load').click(function(){
+                    websocket.send(JSON.stringify({cmd:'load-defaults'}))
+                })
+
+                $('#refresh').click(function(){
+                    websocket.send(JSON.stringify({cmd:'request-update'}))
+                })
                 
                 websocket.onmessage = function(event){
                     data = JSON.parse(event.data)
