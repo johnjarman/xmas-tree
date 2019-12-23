@@ -10,9 +10,10 @@ import time
 import itertools
 import copy
 import logging
+import logging.handlers
 import sys
 from multiprocessing import Process, Queue
-from queue import Full, Empty
+import queue
 from gpiozero import SPIDevice
 
 
@@ -103,7 +104,7 @@ class XmasTreeServer:
 
                     self.hw_queue.put((frame, self.brightness), False)
                     self.hw_done = False
-            except (Full, Empty):
+            except (queue.Full, queue.Empty):
                 pass
             await asyncio.sleep(0.01)
 
@@ -179,10 +180,8 @@ class XmasTreeServer:
 
         if no_ui_update:
             return
-        try:
-            await self.send_ui_update({'colour2':self.colour2.html})
-        except AttributeError:
-            pass
+
+        await self.send_ui_update({'colour2':self.colour2.html})
 
     async def set_colour1(self, colour, no_ui_update = False):
         self.colour1 = colour
@@ -191,10 +190,8 @@ class XmasTreeServer:
 
         if no_ui_update:
             return
-        try:
-            await self.send_ui_update({'colour1':self.colour1.html})
-        except AttributeError:
-            pass
+
+        await self.send_ui_update({'colour1':self.colour1.html})
 
     async def load_defaults(self):
         # Load config from file
@@ -331,6 +328,9 @@ class XmasTreeServer:
         
             logging.debug('Sent update {} to {} client(s)'.format(update, len(self.connections)))
 
+        else:
+            logging.debug("Didn't send update {}: no clients connected".format(update))
+
     async def handler(self, websocket, path):
         try:
             self.connections.add(websocket)
@@ -353,11 +353,18 @@ class XmasTreeServer:
 
 if __name__ == '__main__':
     # Set up logging
-    logging.basicConfig(
-        filename='xmastree.log',
-        level=logging.INFO,
-        format='%(asctime)s %(levelname)s %(message)s',
-        datefmt='%d/%m/%Y %H:%M:%S')
+    log_queue = queue.Queue()
+    queue_handler = logging.handlers.QueueHandler(log_queue)
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S')
+    file_handler = logging.FileHandler('xmastree.log')
+    file_handler.setFormatter(formatter)
+    queue_listener = logging.handlers.QueueListener(log_queue, file_handler)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    logger.addHandler(queue_handler)
+
+    queue_listener.start()
 
     tree_server = XmasTreeServer()
 
