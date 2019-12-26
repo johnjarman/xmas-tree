@@ -13,6 +13,9 @@
     <body>
         <div class="container mt-5 shadow rounded p-4" style='max-width:800px'>
             <h1>🎄 Nerd Christmas Tree 🎄</h1>
+            <div class="alert alert-warning" role="alert" id="connected" style="display:none;">
+                Connecting...
+            </div>
             <div class="form-group">
                 <div class="input-group mb-3 mt-3">
                     <div class="input-group-prepend">
@@ -104,13 +107,99 @@
         <script src="dist/js/bootstrap-colorpicker.js"></script> 
 
         <script>
-            var websocket = new WebSocket("ws://192.168.0.73:6789/");
             var colour1 = ''
             var colour2 = ''
             var brightness = 0
             var got_initial_value = false
+            var websocket = null
+
+            function connect() {
+
+                setTimeout(function(){
+                    if ($('#connected').hasClass('alert-warning')) {
+                        $('#connected').fadeIn(100)
+                    }
+                }, 1000);
+
+                websocket = new WebSocket("ws://192.168.0.73:6789/");
+
+                websocket.onopen = function(){
+                    websocket.send(JSON.stringify({cmd:'request-update'}));
+                    if ($('#connected').hasClass('alert-warning')) {
+                        $('#connected').removeClass('alert-warning');
+                        $('#connected').addClass('alert-success');
+                        $('#connected').html('Connected');
+                        setTimeout(function(){
+                            $('#connected').fadeOut(1000)
+                        }, 1000);
+                    }
+                };
+
+                websocket.onclose = function() {
+                    if ($('#connected').hasClass('alert-success')) {
+                        $('#connected').removeClass('alert-success');
+                        $('#connected').addClass('alert-warning');
+                        $('#connected').html('Connecting...');
+                        $('#connected').fadeIn(100);
+                    }
+                    setTimeout(function() {
+                    connect();
+                    }, 1000);
+                };
+
+                websocket.onerror = function(err) {
+                    websocket.close();
+                };
+
+                websocket.onmessage = function(event){
+                    data = JSON.parse(event.data)
+                    if ('mode' in data) {
+                        switch (data['mode']) {
+                            case 'manual':
+                                $('#manual').prop('checked', true);
+                                break;
+                            case 'colourcycle':
+                                $('#preset1').prop('checked', true);
+                                break;
+                            case 'slow-cycle':
+                                $('#preset2').prop('checked', true);
+                                break;
+                            case 'classic':
+                                $('#preset3').prop('checked', true)
+                                break;
+                        }
+                    }
+                    if ('colour1' in data) {
+                        colour1 = data['colour1'].toUpperCase()
+                        $('#colour1').colorpicker('setValue',data['colour1']);
+                    }
+                    if ('colour2' in data) {
+                        colour2 = data['colour2'].toUpperCase()
+                        $('#colour2').colorpicker('setValue',data['colour2']);
+                    }
+                    if ('brightness' in data) {
+                        brightness = data['brightness']
+                        $('#brightness').val(data['brightness']);
+                        $('#brightness-output').html(data['brightness']);
+                    }
+                    if ('sparkle' in data) {
+                        $('#sparkle').prop('checked', Boolean(data['sparkle']))
+                    }
+                    if ('on_times' in data) {
+                        $('#on-times').val(data['on_times'])
+                    }
+                    if ('off_times' in data) {
+                        $('#off-times').val(data['off_times'])
+                    }
+
+                    if (!got_initial_value) {
+                        got_initial_value = true
+                    }
+                }
+            }
 
             $(document).ready(function(){
+                connect();
                 $('#colour1').colorpicker();
                 $('#colour2').colorpicker();
       
@@ -177,55 +266,6 @@
                 $('#refresh').click(function(){
                     websocket.send(JSON.stringify({cmd:'request-update'}))
                 })
-                
-                websocket.onmessage = function(event){
-                    data = JSON.parse(event.data)
-                    if ('mode' in data) {
-                        switch (data['mode']) {
-                            case 'manual':
-                                $('#manual').prop('checked', true);
-                                break;
-                            case 'colourcycle':
-                                $('#preset1').prop('checked', true);
-                                break;
-                            case 'slow-cycle':
-                                $('#preset2').prop('checked', true);
-                                break;
-                            case 'classic':
-                                $('#preset3').prop('checked', true)
-                                break;
-                        }
-                    }
-                    if ('colour1' in data) {
-                        colour1 = data['colour1'].toUpperCase()
-                        $('#colour1').colorpicker('setValue',data['colour1']);
-                    }
-                    if ('colour2' in data) {
-                        colour2 = data['colour2'].toUpperCase()
-                        $('#colour2').colorpicker('setValue',data['colour2']);
-                    }
-                    if ('brightness' in data) {
-                        brightness = data['brightness']
-                        $('#brightness').val(data['brightness']);
-                        $('#brightness-output').html(data['brightness']);
-                    }
-                    if ('sparkle' in data) {
-                        $('#sparkle').prop('checked', Boolean(data['sparkle']))
-                    }
-                    if ('on_times' in data) {
-                        $('#on-times').val(data['on_times'])
-                    }
-                    if ('off_times' in data) {
-                        $('#off-times').val(data['off_times'])
-                    }
-
-                    if (!got_initial_value) {
-                        got_initial_value = true
-                    }
-                }
-                websocket.onopen = function(){
-                    websocket.send(JSON.stringify({cmd:'request-update'}));
-                };
             });
         </script>
     </body>
