@@ -160,15 +160,20 @@ class XmasTreeServer:
 
             # Map price to colour
             if price < 5:
-                color = colorzero.Color('aqua')
+                # Aqua
+                color = colorzero.Color('#00FFFF')
             elif price < 7.5:
-                color = colorzero.Color('green')
+                # Green
+                color = colorzero.Color('#00FF00')
             elif price < 10:
-                color = colorzero.Color('yellow')
+                # Yellow
+                color = colorzero.Color('#FF5500')
             elif price < 15:
-                color = colorzero.Color('orange')
+                # Orange
+                color = colorzero.Color('#FF1800')
             else:
-                color = colorzero.Color('red')
+                # Red
+                color = colorzero.Color('#FF0000')
             
             await self.set_colour1(color)
 
