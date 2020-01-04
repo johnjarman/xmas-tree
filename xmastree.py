@@ -156,7 +156,7 @@ class XmasTreeServer:
 
         while self.current_mode == 'elec-price':
             # Update colour of top LED depending on electricity price
-            price = await loop.run_in_executor(None, oe.get_elec_price())
+            price = await loop.run_in_executor(None, oe.get_elec_price)
 
             # Map price to colour
             if price < 5:
