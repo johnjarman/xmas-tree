@@ -151,30 +151,42 @@ class XmasTreeServer:
         loop = asyncio.get_running_loop()
 
         # Get API key from file api_key.txt
-        api_key = await loop.run_in_executor(None, octopusenergy.load_api_key_from_file, 'api_key.txt')
-        oe = octopusenergy.OctopusEnergy(api_key)
+        try:
+            api_key = await loop.run_in_executor(None, octopusenergy.load_api_key_from_file, 'api_key.txt')
+            oe = octopusenergy.OctopusEnergy(api_key)
+        except FileNotFoundError:
+            logging.error('API key file api_key.txt not found')
+            return
 
         while self.current_mode == 'elec-price':
             # Update colour of top LED depending on electricity price
-            price = await loop.run_in_executor(None, oe.get_elec_price)
+            try:
+                price = await loop.run_in_executor(None, oe.get_elec_price)
 
-            # Map price to colour
-            if price < 5:
-                # Aqua
-                color = colorzero.Color('#00FFFF')
-            elif price < 7.5:
-                # Green
-                color = colorzero.Color('#00FF00')
-            elif price < 10:
-                # Yellow
-                color = colorzero.Color('#FF5500')
-            elif price < 15:
-                # Orange
-                color = colorzero.Color('#FF1800')
-            else:
-                # Red
-                color = colorzero.Color('#FF0000')
+                # Map price to colour
+                if price < 5:
+                    # Aqua
+                    color = colorzero.Color('#00FFFF')
+                elif price < 7.5:
+                    # Green
+                    color = colorzero.Color('#00FF00')
+                elif price < 10:
+                    # Yellow
+                    color = colorzero.Color('#FF5500')
+                elif price < 15:
+                    # Orange
+                    color = colorzero.Color('#FF1800')
+                else:
+                    # Red
+                    color = colorzero.Color('#FF0000')
             
+            except octopusenergy.CurrentPriceNotFoundError:
+                logging.error('Current energy price not found')
+                color = colorzero.Color('#FF00FF')
+            except (IOError, ConnectionError):
+                logging.error('Unable to retrieve energy prices')
+                color = colorzero.Color('#FF00FF')
+
             await self.set_colour1(color)
 
             # Wait 1 min between updates
@@ -362,9 +374,13 @@ class XmasTreeServer:
     async def send_ui_update(self, update):
         if self.connections:
             # Send update to each connected client
-            await asyncio.wait([connection.send(json.dumps(update)) for connection in self.connections])
+            try:
+                await asyncio.wait([connection.send(json.dumps(update)) for connection in self.connections])
         
-            logging.debug('Sent update {} to {} client(s)'.format(update, len(self.connections)))
+                logging.debug('Sent update {} to {} client(s)'.format(update, len(self.connections)))
+
+            except websockets.ConnectionClosed:
+                logging.debug("Client disconnected while sending packet")
 
         else:
             logging.debug("Didn't send update {}: no clients connected".format(update))
@@ -372,11 +388,11 @@ class XmasTreeServer:
     async def handler(self, websocket, path):
         try:
             self.connections.add(websocket)
-            logging.info("Client connected from {}".format(websocket.remote_address[0]))
+            logging.debug("Client connected from {}".format(websocket.remote_address[0]))
             async for message in websocket:
                 await self.consumer(message)
         except websockets.ConnectionClosed:
-            logging.info("Client disconnected from {}".format(websocket.remote_address[0]))
+            logging.debug("Client disconnected from {}".format(websocket.remote_address[0]))
         finally:
             self.connections.discard(websocket)
 
