@@ -151,7 +151,7 @@ class XmasTreeServer:
         loop = asyncio.get_running_loop()
 
         # Get API key from file api_key.txt
-        api_key = await loop.run_in_executor(None, octopusenergy.load_api_key_from_file('api_key.txt'))
+        api_key = await loop.run_in_executor(None, octopusenergy.load_api_key_from_file, 'api_key.txt')
         oe = octopusenergy.OctopusEnergy(api_key)
 
         while self.current_mode == 'elec-price':
