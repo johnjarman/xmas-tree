@@ -15,6 +15,7 @@ import sys
 from multiprocessing import Process, Queue
 import queue
 from gpiozero import SPIDevice
+import octopusenergy
 
 
 class XmasTreeHardware(Process):
@@ -145,6 +146,35 @@ class XmasTreeServer:
                 else:
                     break
     
+    async def elec_price(self):
+        """ Set colour of tree depending on current electricity price """
+        loop = asyncio.get_running_loop()
+
+        # Get API key from file api_key.txt
+        api_key = await loop.run_in_executor(None, octopusenergy.load_api_key_from_file('api_key.txt'))
+        oe = octopusenergy.OctopusEnergy(api_key)
+
+        while self.current_mode == 'elec-price':
+            # Update colour of top LED depending on electricity price
+            price = loop.run_in_executor(None, oe.get_elec_price())
+
+            # Map price to colour
+            if price < 5:
+                color = colorzero.Color('green')
+            elif price < 7.5:
+                color = colorzero.Color('aqua')
+            elif price < 10:
+                color = colorzero.Color('yellow')
+            elif price < 15:
+                color = colorzero.Color('orange')
+            else:
+                color = colorzero.Color('red')
+            
+            await self.set_colour1(color)
+
+            # Wait 10 mins between updates
+            await asyncio.sleep(600)
+
     def set_classic_colours(self):
         red = colorzero.Color('#FF0000')
         green = colorzero.Color('#00FF00')
@@ -167,6 +197,9 @@ class XmasTreeServer:
 
             elif mode == 'classic':
                 self.set_classic_colours()
+
+            elif mode == 'elec-price':
+                asyncio.create_task(self.elec_price())
 
             elif mode == 'manual':
                 await self.set_colour1(self.colour1)
@@ -257,7 +290,7 @@ class XmasTreeServer:
         if 'colour2' in msg.keys():
             await self.set_colour2(colorzero.Color(msg['colour2']), True)
 
-            if self.current_mode != 'manual':
+            if not (self.current_mode in ('manual', 'elec-price')):
                 await self.send_ui_update({'mode':'manual'})
                 self.current_mode = 'manual'
 
