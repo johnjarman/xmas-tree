@@ -172,8 +172,8 @@ class XmasTreeServer:
             
             await self.set_colour1(color)
 
-            # Wait 10 mins between updates
-            await asyncio.sleep(600)
+            # Wait 1 min between updates
+            await asyncio.sleep(60)
 
     def set_classic_colours(self):
         red = colorzero.Color('#FF0000')
