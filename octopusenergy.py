@@ -53,7 +53,7 @@ class OctopusEnergy:
         return price
 
     def _get_data_http(self):
-        r = requests.get(self.api_url, auth=(self.api_key, ''))
+        r = requests.get(self.api_url, auth=(self.api_key + ':', ''))
         data = json.loads(r.text)
         # Write latest data to cache file
         with open(self.cache_file, 'w') as f:
@@ -64,11 +64,13 @@ class OctopusEnergy:
     def _get_current_price_from_data(self, data):
         current_time = datetime.now()
         price = None
-
-        for val in data['results']:
-            if (datetime.strptime(val['valid_from'], self.date_format) <= current_time and
-                datetime.strptime(val['valid_to'], self.date_format) > current_time):
-                price = val['value_exc_vat']
+        try:
+            for val in data['results']:
+                if (datetime.strptime(val['valid_from'], self.date_format) <= current_time and
+                    datetime.strptime(val['valid_to'], self.date_format) > current_time):
+                    price = val['value_exc_vat']
+        except KeyError:
+            logging.error("Could not get price data: " + data['detail'])
 
         if price is None:
             raise CurrentPriceNotFoundError
