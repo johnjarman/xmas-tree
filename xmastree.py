@@ -164,7 +164,10 @@ class XmasTreeServer:
                 price = await loop.run_in_executor(None, oe.get_elec_price)
 
                 # Map price to colour
-                if price < 5:
+                if price < 0:
+                    # Blue
+                    color = colorzero.Color('#0000FF')
+                elif price < 5:
                     # Aqua
                     color = colorzero.Color('#00FFFF')
                 elif price < 7.5:
