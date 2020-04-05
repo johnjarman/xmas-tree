@@ -8,6 +8,7 @@ import logging
 import json
 import requests
 from datetime import datetime
+from dateutil import tz
 
 class CurrentPriceNotFoundError(Exception):
     pass
@@ -21,7 +22,7 @@ class OctopusEnergy:
     def __init__(self, api_key, cache_file='cache.json'):
         self.api_key = api_key
         self.cache_file = cache_file
-        self.api_url = 'https://api.octopus.energy/v1/products/AGILE-18-02-21/electricity-tariffs/E-1R-AGILE-18-02-21-A/standard-unit-rates/'
+        self.api_url = 'https://api.octopus.energy/v1/products/AGILE-18-02-21/electricity-tariffs/E-1R-AGILE-18-02-21-J/standard-unit-rates/'
         self.date_format = '%Y-%m-%dT%H:%M:%SZ'
 
     def get_elec_price(self, cache=True):
@@ -63,11 +64,18 @@ class OctopusEnergy:
 
     def _get_current_price_from_data(self, data):
         current_time = datetime.now()
+        utc = tz.tzutc()
+        local_tz = tz.tzlocal()
+        current_time.replace(tzinfo=local_tz)
+        current_time = current_time.astimezone(utc)
         price = None
+
         try:
             for val in data['results']:
-                if (datetime.strptime(val['valid_from'], self.date_format) <= current_time and
-                    datetime.strptime(val['valid_to'], self.date_format) > current_time):
+                valid_from = datetime.strptime(val['valid_from'], self.date_format).replace(tzinfo=utc)
+                valid_to = datetime.strptime(val['valid_to'], self.date_format).replace(tzinfo=utc)
+                if (valid_from <= current_time and
+                    valid_to > current_time):
                     price = val['value_exc_vat']
         except KeyError:
             logging.error("Could not get price data: " + data['detail'])
