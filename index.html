@@ -121,7 +121,7 @@
                     }
                 }, 1000);
 
-                websocket = new WebSocket("ws://192.168.0.73:6789/");
+                websocket = new WebSocket("ws://xmastree.local:6789/");
 
                 websocket.onopen = function(){
                     websocket.send(JSON.stringify({cmd:'request-update'}));

@@ -344,7 +344,7 @@ class XmasTreeServer:
 
     async def start(self):
         await self.load_defaults()
-        ip = '192.168.0.73'
+        ip = 'xmastree.local'
         port = 6789
         await websockets.serve(self.handler, ip, port)
         logging.info('Server started at {}:{}'.format(ip, port))
