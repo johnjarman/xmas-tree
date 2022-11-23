@@ -137,6 +137,8 @@ class XmasTreeServer:
                         break
                     await self.set_colour1(c1)
                     await self.set_colour2(c2)
+                    await self.send_ui_update({'colour1':self.colour1.html})
+                    await self.send_ui_update({'colour2':self.colour2.html})
                     await asyncio.sleep(10)
 
                 # Stay on this preset for 5 mins
@@ -171,6 +173,8 @@ class XmasTreeServer:
             elif mode == 'manual':
                 await self.set_colour1(self.colour1)
                 await self.set_colour2(self.colour2)
+
+            await self.send_ui_update({'mode':mode})
 
     async def set_colour2(self, colour, no_ui_update = False):
         self.colour2 = colour
@@ -304,7 +308,7 @@ class XmasTreeServer:
                 await self.load_defaults()
                 await self.update_all()
 
-    async def update_all(self):
+    async def update_all(self, exclude=None):
         on_times = []
         for t in self.on_times:
             on_times.append('{}:{:0>2}'.format(t[0], t[1]))
@@ -319,15 +323,17 @@ class XmasTreeServer:
             'sparkle':self.enable_sparkle,
             'on_times':str(on_times).strip('[]').replace('\'',''),
             'off_times':str(off_times).strip('[]').replace('\'','')
-        })
+            }, 
+            exclude
+        )
 
-    async def send_ui_update(self, update):
-        if self.connections:
-            # Send update to each connected client
-            await asyncio.wait([connection.send(json.dumps(update)) for connection in self.connections])
-        
+    async def send_ui_update(self, update, exclude=None):
+        # Send update to each connected client
+        task_list = [asyncio.create_task(connection.send(json.dumps(update))) for connection in self.connections if connection != exclude]
+            
+        if len(task_list) > 0:
+            await asyncio.wait(task_list)
             logging.debug('Sent update {} to {} client(s)'.format(update, len(self.connections)))
-
         else:
             logging.debug("Didn't send update {}: no clients connected".format(update))
 
@@ -337,6 +343,7 @@ class XmasTreeServer:
             logging.info("Client connected from {}".format(websocket.remote_address[0]))
             async for message in websocket:
                 await self.consumer(message)
+                await self.update_all(exclude=websocket)
         except websockets.ConnectionClosed:
             logging.info("Client disconnected from {}".format(websocket.remote_address[0]))
         finally:
