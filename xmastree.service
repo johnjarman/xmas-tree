@@ -6,7 +6,7 @@ After=multi-user.target
 Type=simple
 WorkingDirectory=/home/pi/xmas-tree
 User=pi
-ExecStart=/usr/bin/python3 /home/pi/xmas-tree/xmastree.py
+ExecStart=/home/pi/xmas-tree/venv/bin/python3 /home/pi/xmas-tree/xmastree.py
 
 [Install]
 WantedBy=multi-user.target
