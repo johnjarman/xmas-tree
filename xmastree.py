@@ -112,6 +112,7 @@ class XmasTreeServer:
         """ Cycle through hues """
         while self.current_mode == 'colourcycle':
             await self.set_colour2(self.colour2 + colorzero.Hue(deg=2))
+            await self.send_ui_update({'colour2':self.colour2.html})
             await asyncio.sleep(0.2)
 
     async def slow_cycle(self):
@@ -174,28 +175,16 @@ class XmasTreeServer:
                 await self.set_colour1(self.colour1)
                 await self.set_colour2(self.colour2)
 
-            await self.send_ui_update({'mode':mode})
-
-    async def set_colour2(self, colour, no_ui_update = False):
+    async def set_colour2(self, colour):
         self.colour2 = colour
 
         for i in itertools.chain(range(0, 3),range(4, 25)):
             self.frame[i] = colour
 
-        if no_ui_update:
-            return
-
-        await self.send_ui_update({'colour2':self.colour2.html})
-
-    async def set_colour1(self, colour, no_ui_update = False):
+    async def set_colour1(self, colour):
         self.colour1 = colour
 
         self.frame[3] = colour
-
-        if no_ui_update:
-            return
-
-        await self.send_ui_update({'colour1':self.colour1.html})
 
     async def load_defaults(self):
         # Load config from file
@@ -256,12 +245,17 @@ class XmasTreeServer:
             await self.set_mode(msg['mode'])
 
         if 'colour1' in msg.keys():
-            await self.set_colour1(colorzero.Color(msg['colour1']), True)
+            await self.set_colour1(colorzero.Color(msg['colour1']))
+            if self.current_mode == 'slow-cycle':
+                # Stop colour cycling if colour1 is changed
+                await self.send_ui_update({'mode':'manual'})
+                self.current_mode = 'manual'
 
         if 'colour2' in msg.keys():
-            await self.set_colour2(colorzero.Color(msg['colour2']), True)
+            await self.set_colour2(colorzero.Color(msg['colour2']))
 
             if self.current_mode != 'manual':
+                # Stop colour cycling if colour2 is changed
                 await self.send_ui_update({'mode':'manual'})
                 self.current_mode = 'manual'
 
