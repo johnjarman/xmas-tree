@@ -194,7 +194,7 @@ class XmasTreeServer:
                 logging.info("Loading defaults from defaults.json")
         except FileNotFoundError:
             # No config file found, so create it
-            logging.warn("No config file found, using built-in defaults")
+            logging.warning("No config file found, using built-in defaults")
             defaults = {
                 'current_mode':'slow-cycle',
                 'colour1':'#FF2400',
